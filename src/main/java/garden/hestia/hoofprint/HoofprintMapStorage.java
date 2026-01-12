@@ -88,44 +88,74 @@ public class HoofprintMapStorage {
 	}
 
 	public void tick(WorldSummary summary, long time) {
+		// only update the map every some number of ticks
 		if (time % Hoofprint.CONFIG.debug.ticksPerBake != 0) return;
+
+		// get the first queued region position
+		// regions are groups of chunks, just as chunks are groups of blocks
 		RegionPos rPos = terrainQueue.keySet().stream().findFirst().orElse(null);
+
+		// render the region
 		if (rPos != null) {
 			bake(summary, rPos, terrainQueue.remove(rPos));
 		}
 	}
 
 	private void bake(WorldSummary summary, RegionPos rPos, BitSet changes) {
+		// grab terrain data from surveyor
 		WorldTerrain terrain = summary.terrain();
 		if (terrain == null) return;
+
+		// grab the region data at the given region position
 		RegionSummary region = terrain.getRegion(rPos);
+
+		// find the area of the region that has not already been filled in on the map
 		BitSet filledArea = terrainFilled.computeIfAbsent(rPos, s -> new BitSet(RegionPos.CHUNK_AREA));
+		// if the entire area has already been filled before, do not re-render
 		changes.andNot(filledArea); // Don't live update the existing map.
 		if (changes.isEmpty()) return;
+
+		// use the or operation to update the filledArea bitset and mark new areas in the region as filled
 		filledArea.or(changes);
+
+		// debug print
 		if (Hoofprint.CONFIG.debug.logBaking) Hoofprint.LOGGER.info("[Hoofprint] Baking {} chunks to the map texture for region {}", changes.cardinality(), rPos);
+
 		ConstantLightMap lightMap = Hoofprint.CONFIG.dimensions.lightmaps.getOrDefault(summary.dimension().getValue().toString(), Hoofprint.CONFIG.dimensions.defaultLightmap);
 		ChunkPos regionChunkOrigin = rPos.toChunk();
 		Integer maxY = Hoofprint.CONFIG.dimensions.ceilings.getOrDefault(summary.dimension().getValue().toString(), null);
 
+		// A region is a 32 x 32 chunk area. So why is chunkSummaries 34 x 34? Is it a buffer zone around the 32 x 32 area?
 		LayerSummary.Raw[][] chunkSummaries = new LayerSummary.Raw[34][34];
 		LayerSummary.Raw[][] chunkBelowSummaries = new LayerSummary.Raw[34][34];
 
 		for (LayerConfiguration config : List.of(
+			// settings for how to render the surface layer
 			new LayerConfiguration(chunkSummaries, new int[544][544], new int[544][544], getNativeTexture(rPos, regionTextures), (s, x, z) -> s == null ? null : s.toSingleLayer(null, maxY, 999), maxY == null),
+			// settings for how to render the cave layer
 			new LayerConfiguration(chunkBelowSummaries, new int[544][544], new int[544][544], getNativeTexture(rPos, caveRegionTextures), (s, x, z) -> this.belowLayerUsingCache(chunkSummaries, s, x, z, maxY, 999), false)
 		)) {
+			// for every chunk in the region
 			for (int chunkX = 0; chunkX < 32; chunkX++) {
 				for (int chunkZ = 0; chunkZ < 32; chunkZ++) {
+
+					// skip this chunk if it has not been changed.
+					// Changes are indicated by a 1 in the bitset in the position corresponding to the given chunk coords
 					if (!changes.get(RegionPos.chunkToBit(chunkX, chunkZ))) continue;
+
+					// check a 3 x 3 area centered on the current chunk position
 					for (int x = -1; x <= 1; x++) {
 						for (int z = -1; z <= 1; z++) {
+
+							// if the surrounding chunk is null
 							if (config.cache[chunkX + 1 + x][chunkZ + 1 + z] == null) { // Surrounding layers
 								ChunkPos layerPos = new ChunkPos(regionChunkOrigin.x + chunkX + x, regionChunkOrigin.z + chunkZ + z);
 								LayerSummary.Raw layer = config.flattener.apply(terrain.get(layerPos), chunkX + x, chunkZ + z);
 								if (layer == null) continue;
 								config.cache[chunkX + 1 + x][chunkZ + 1 + z] = layer;
 								RegistryPalette<Biome>.ValueView biomePalette = terrain.getRegion(RegionPos.of(layerPos)).getBiomePalette();
+
+								// for each block in the surface of the chunk
 								for (int i = 0; i < 16; i++) {
 									for (int j = 0; j < 16; j++) {
 										Biome biome = biomePalette.get(layer.biomes()[i * 16 + j]);
@@ -139,6 +169,8 @@ public class HoofprintMapStorage {
 					}
 					RegistryPalette<Block>.ValueView blockPalette = region.getBlockPalette();
 					if (config.cache[chunkX + 1][chunkZ + 1] == null || blockPalette == null) continue;
+
+					// dynamically render a texture for this chunk
 					int[][] colors = this.getColors(config.cache, config.waterColors, config.foliageColors, chunkX + 1, chunkZ + 1, blockPalette, lightMap, config.skyLight);
 					for (int x = 0; x < colors.length; x++) {
 						for (int z = 0; z < colors[x].length; z++) {
@@ -147,6 +179,7 @@ public class HoofprintMapStorage {
 					}
 				}
 			}
+			// upload the texture for this region
 			config.texture.upload();
 		}
 	}
