@@ -35,16 +35,11 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.border.WorldBorder;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class HoofprintScreen extends Screen {
@@ -186,6 +181,47 @@ public class HoofprintScreen extends Screen {
 		SurveyorClient.getFriends().forEach((uuid, player) -> renderPlayer(context, player, uuid));
 
 		mapStorage.landmarks.values().stream().filter(landmark -> editingLandmark == null || !landmark.id().equals(editingLandmark.id())).forEach(landmark -> renderLandmark(context, landmark, scaleFactor));
+
+		double worldX = Math.floor(screenXToWorldX(hoveredScreenX));
+		double worldZ = Math.floor(screenYToWorldZ(hoveredScreenY));
+
+		if (!ifTerrainUnderCursor((block, biome, biomeId, y, lightLevel, waterDepth, waterLight) -> {
+			String coordinates = "X: " + (int) worldX + " Y: " + y + " Z: " + (int) worldZ;
+			context.drawText(
+				this.textRenderer,
+				Text.literal(coordinates),
+				( width - this.textRenderer.getWidth(coordinates) ) / 2,
+				2,
+				0xFFFFFF,
+				true
+			);
+
+			String[] wordsInBiomeName = Arrays.stream(biomeId.toString()
+				.split(":")[1]
+				.split("_"))
+				.map(StringUtils::capitalize)
+				.toArray(String[]::new);
+
+			String biomeName = String.join(" ", wordsInBiomeName);
+			context.drawText(
+				this.textRenderer,
+				Text.literal(biomeName),
+				( width - this.textRenderer.getWidth(biomeName) ) / 2,
+				12,
+				0xFFFFFF,
+				true
+			);
+		})) {
+			String coordinates = "X: " + (int) worldX + " Z: " + (int) worldZ;
+			context.drawText(
+				this.textRenderer,
+				Text.literal(coordinates),
+				( width - this.textRenderer.getWidth(coordinates) ) / 2,
+				2,
+				0xFFFFFF,
+				true
+			);
+		}
 
 		// Tooltips
 		if (editingLandmark != null) {
