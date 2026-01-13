@@ -28,7 +28,7 @@ public class HoofprintConfig extends WrappedConfig {
 	public static class Style implements Section {
 		@Comment("Whether to color the water based on biome.")
 		@Comment("Disable for a vanilla style.")
-		public boolean biomeWater = false;
+		public boolean biomeWater = true;
 
 		@Comment("Whether to color grass and foliage blocks based on biome.")
 		@Comment("Disable for a vanilla style.")
@@ -37,15 +37,15 @@ public class HoofprintConfig extends WrappedConfig {
 		@Comment("How large of an area to blend biome colors for water and foliage.")
 		@Comment("Set to 0 for no blending. Higher is more performance intensive.")
 		@IntegerRange(min = 0, max = 16)
-		public int blendRadius = 9;
+		public int blendRadius = 0;
 
 		@Comment("Whether to override the base color of odd-colored blocks like stone, ice, and leaf variants.")
 		@Comment("Disable for a vanilla style.")
-		public boolean accurateColors = false;
+		public boolean accurateColors = true;
 
 		@Comment("Whether to render water as transparent, becoming more opaque in deep waters.")
 		@Comment("Disable for a vanilla style.")
-		public boolean transparentWater = false;
+		public boolean transparentWater = true;
 
 		@Comment("Whether to consider sky and block lighting when coloring map pixels.")
 		@Comment("Disable for a vanilla style.")

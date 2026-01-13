@@ -79,7 +79,11 @@ public class ColorUtil {
 		if (depth == 7) { // Emulate floating point error in vanilla code
 			depth = 8;
 		}
-		int ditheredDepth = depth + (((x ^ z) & 1) << 1);
+
+		// depth += ((x XOR z) AND 0x00000001) SHIFTLEFT 1
+		// depth += 2 or 0 depending on x and z
+		// add noise to water depth to make the bands between brightness levels less pronounced
+		int ditheredDepth = depth + (((x ^ z) & 1) << 1); // evaluates to either 10 (2) or 00 (0)
 		if (ditheredDepth > 9) {
 			return Brightness.LOW;
 		} else if (ditheredDepth >= 5) {

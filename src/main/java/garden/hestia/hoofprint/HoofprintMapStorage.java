@@ -170,24 +170,40 @@ public class HoofprintMapStorage {
 	int[][] getColors(LayerSummary.Raw[][] chunks, int[][] waterColors, int[][] foliageColors, int chunkX, int chunkZ, RegistryPalette<Block>.ValueView blockPalette, ConstantLightMap lightMap, boolean hasSky) {
 		LayerSummary.Raw layer = chunks[chunkX][chunkZ];
 		LayerSummary.Raw aboveLayer = chunks[chunkX][chunkZ - 1];
+		// A chunk is 16 x 16 blocks
 		int[][] colors = new int[16][16];
+
+		// for each block in the chunk
 		for (int x = 0; x < 16; x++) {
 			for (int z = 0; z < 16; z++) {
+
+				// calculate index of block in chunk
 				int i = x * 16 + z;
+				// if block doesn't exist, skip
 				if (!layer.exists().get(i)) continue;
+
 				int color;
 				int waterColor;
+
+				// if transparent water is off and the depth of water at this block is greater than 0
 				if (!Hoofprint.CONFIG.style.transparentWater && layer.waterDepths()[i] > 0) {
+					// if biome specific water color is enabled, then blend this color of water at this block with surrounding water blocks
+					// otherwise, just use the base water color
 					color = Hoofprint.CONFIG.style.biomeWater ? ColorUtil.tint(WATER_TEXTURE_COLOR, ColorUtil.blendColors(waterColors, 16 * chunkX + x, 16 * chunkZ + z, Hoofprint.CONFIG.style.blendRadius)) : WATER_MAP_COLOR;
 				} else {
+					// get the block type at this position in the chunk
 					Block block = blockPalette.get(layer.blocks()[i]);
+					// if the block is part of any foliage group defined in ColorUtil.BLOCK_COLOR_PROVIDERS, then we get a tinting function corresponding to the group
 					Function<Integer, Integer> foliageFunction = ColorUtil.getBiomeColorProvider(block);
+					// repeat biome water blending on biome grasses
 					if (foliageFunction != null) {
 						color = foliageFunction.apply(ColorUtil.blendColors(foliageColors, 16 * chunkX + x, 16 * chunkZ + z, Hoofprint.CONFIG.style.blendRadius));
 					} else {
 						color = ColorUtil.getStaticBlockColor(block);
 					}
 				}
+
+				// if topography is enabled
 				if (Hoofprint.CONFIG.style.topography) {
 					ColorUtil.Brightness brightness = ColorUtil.Brightness.NORMAL;
 					if (!Hoofprint.CONFIG.style.transparentWater && layer.waterDepths()[i] > 0) {
