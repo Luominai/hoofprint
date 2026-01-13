@@ -206,18 +206,27 @@ public class HoofprintMapStorage {
 				// if topography is enabled
 				if (Hoofprint.CONFIG.style.topography) {
 					ColorUtil.Brightness brightness = ColorUtil.Brightness.NORMAL;
+
+					// if water is not transparent, and there is water at this block, get brightness according to the depth
 					if (!Hoofprint.CONFIG.style.transparentWater && layer.waterDepths()[i] > 0) {
 						brightness = ColorUtil.getBrightnessFromDepth(layer.waterDepths()[i], x, z);
-					} else if (z > 0) {
+					}
+					// if this block is not in the northmost row of the chunk
+					else if (z > 0) {
+						// if the depth at the block north is less than the depth here, use low brightness
 						if (layer.depths()[i - 1] < layer.depths()[i]) brightness = ColorUtil.Brightness.LOW;
+						// if the depth at the block north is higher than the depth here, use high brightness
 						if (layer.depths()[i - 1] > layer.depths()[i]) brightness = ColorUtil.Brightness.HIGH;
-					} else if (aboveLayer != null) {
+					}
+					// if this block is in the northernmost row of this chunk, use the chunk layer above to calculate brightness
+					else if (aboveLayer != null) {
 						if (aboveLayer.depths()[x * 16 + 15] < layer.depths()[i]) brightness = ColorUtil.Brightness.LOW;
 						if (aboveLayer.depths()[x * 16 + 15] > layer.depths()[i])
 							brightness = ColorUtil.Brightness.HIGH;
 					}
 					color = applyBrightnessRGB(brightness, color);
 				}
+				// if sky lighting is enabled and water is transparent or doesn't exist here
 				if (Hoofprint.CONFIG.style.lighting && (Hoofprint.CONFIG.style.transparentWater || layer.waterDepths()[i] == 0)) {
 					int blockLight = layer.lightLevels()[i];
 					int skyLight = hasSky ? Math.max(ColorUtil.SKY_LIGHT - layer.waterDepths()[i], 0) : Hoofprint.CONFIG.style.ambientLight;
