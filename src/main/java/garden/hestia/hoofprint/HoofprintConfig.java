@@ -32,7 +32,7 @@ public class HoofprintConfig extends WrappedConfig {
 
 		@Comment("Whether to color grass and foliage blocks based on biome.")
 		@Comment("Disable for a vanilla style.")
-		public boolean biomeFoliage = false;
+		public boolean biomeFoliage = true;
 
 		@Comment("How large of an area to blend biome colors for water and foliage.")
 		@Comment("Set to 0 for no blending. Higher is more performance intensive.")
